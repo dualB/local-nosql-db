@@ -1,0 +1,20 @@
+{
+  "name": "local-nosql-db",
+  "version": "0.5.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Claude Bouchard",
+  "license": "ISC",
+  "description": "A local database based on MongoDb interface, saved locally in a .json file.",
+  "dependencies": {
+    "bson": "^6.10.3"
+  },
+
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dualB/local-nosql-db.git"
+  }
+}
