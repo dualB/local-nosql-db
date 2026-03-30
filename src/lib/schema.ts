@@ -1,10 +1,10 @@
 import { ObjectId } from "bson";
-import { isTableExists, getTable, Table } from "./table";
+import { isTableExists, getTable, Table, BaseItem } from "./table";
 
 /**
  * Type générique d'un item manipulé
  */
-export type AnyObject = Record<string, any>;
+export type AnyObject = BaseItem
 
 /**
  * Définition d’un champ de schéma
@@ -13,78 +13,98 @@ export type FieldDefinition =
   | string
   | (new (value: any) => any)
   | {
-      type: string | (new (value: any) => any);
-      required?: boolean;
-      unique?: boolean;
-      default?: any | (() => any);
-      ref?: string;
-    };
+    type: 'number' | 'string' | 'boolean' | 'id' | 'objectid' | 'date' | (new (value: any) => any);
+    required?: boolean;
+    unique?: boolean;
+    default?: any | (() => any);
+    ref?: string;
+  };
 
 /**
  * Structure complète du schéma
  */
-export type SchemaDefinition = Record<string, FieldDefinition>;
+export type SchemaDefinition<T> = Record<keyof T, FieldDefinition>;
 
 /**
  * Validator interne
  */
 interface FieldValidator {
-  validators: Array<(data: AnyObject, table: Table<any>) => string | null>;
+  validators: Array<(data: Partial<AnyObject>, table: Table<any>) => string | null>;
   build: (value: any) => any;
-  getErrors: (data: AnyObject, table: Table<any>) => (string | null)[];
+  getErrors: (data: Partial<AnyObject>, table: Table<any>) => (string | null)[];
 }
 
 interface Validator {
   fields: Record<string, FieldValidator>;
-  populators: Array<(data: AnyObject) => void>;
+  populators: Array<(data: AnyObject, populator: PopulateOption, test: (key: string) => boolean, afterPop: (poppedItem: AnyObject, fromTable: string, option?: PopulateOption) => AnyObject) => AnyObject>;
   unpopulators: Array<(data: AnyObject) => void>;
   defaultors: Array<(data: AnyObject) => void>;
-  getErrors: (data: AnyObject, table: Table<any>) => string[];
+  getErrors: (data: Partial<AnyObject>, table: Table<any>) => string[];
+  populate: (data: AnyObject, populator: PopulateOption, testeur: (key: string) => boolean, afterPop: (poppedItem: AnyObject, fromTable: string, option?: PopulateOption) => AnyObject) => AnyObject
 }
+
+export type PopulateOption = true | string | string[] | { [x: string]: PopulateOption }
+
+export function buildTestPopulator(option: PopulateOption = {}): (field: string) => boolean {
+
+  if (!option) { return () => false }
+  if (option == true) {
+    return (field: string) => true
+  }
+  if (typeof option === 'string') {
+    return (field: string) => option == field
+  }
+  if (Array.isArray(option)) {
+    return (field: string) => option.some(name => name == field)
+  }
+  else {
+    return (field: string) => option[field] != undefined
+  }
+
+}
+
 
 /**
  * Classe principale Schema
  */
-export class Schema<T extends AnyObject = AnyObject> {
-  public data: SchemaDefinition;
+export class Schema<T extends AnyObject> {
+  public data: SchemaDefinition<T>;
   public validator: Validator;
 
-  constructor(data: SchemaDefinition) {
-    this.data = data;
+  constructor(data: SchemaDefinition<Omit<T, "id">>) {
+    this.data = { ...data, "id": { type: 'id', unique: true, required: true } } as unknown as SchemaDefinition<T>
     this.validator = buildValidator(data);
   }
 
-  getErrors(data: T, table: Table<T>): string[] {
+  getErrors(data: Partial<T>, table: Table<T>): string[] {
     return this.validator.getErrors(data, table);
   }
 
-  buildItem(data: Partial<T>, target: any): void {
-    target._id = new ObjectId().toString() as any;
+  buildItem(data: Partial<T>): T {
+    const target = {} as any
+    target.id = new ObjectId().toString() as any;
 
     const validator = this.validator;
-    const dataa = data ?? {};
+    if (data) {
+      const keys = Object.keys(data)
 
-    Object.keys(dataa).forEach((key) => {
-      const value = (data as any)[key];
-      target[key] = validator.fields[key].build(value);
-    });
-
+      keys.forEach(k => {
+        const value = data[k]
+        target[k] = validator.fields[k].build(value);
+      });
+    }
     validator.defaultors.forEach((defaulter) => {
       defaulter(target);
     });
+    return target as T
   }
 
-  decorateItem(item: T | undefined): void {
-    if (item) {
-      this.validator.populators.forEach((populator) => populator(item));
-    }
-  }
 }
 
 /**
  * Construction du validator
  */
-function buildValidator(structure: SchemaDefinition): Validator {
+function buildValidator<T extends AnyObject>(structure: SchemaDefinition<T>): Validator {
   const validator: Validator = {
     fields: {},
     populators: [],
@@ -96,6 +116,9 @@ function buildValidator(structure: SchemaDefinition): Validator {
         .flat()
         .filter((e): e is string => e != null);
     },
+    populate(item, pop, testeur, afterPop) {
+      return this.populators.reduce((previous, populator) => populator(previous, pop, testeur, afterPop), item);
+    }
   };
 
   Object.keys(structure).forEach((key) => {
@@ -103,7 +126,7 @@ function buildValidator(structure: SchemaDefinition): Validator {
 
     const fieldValidator: FieldValidator = {
       validators: [],
-      build: () => {},
+      build: () => { },
       getErrors(data, table) {
         if (!table) {
           throw new Error(
@@ -151,24 +174,27 @@ function buildValidator(structure: SchemaDefinition): Validator {
       }
 
       if (item.ref) {
-        validator.populators.push((data) => {
-          if (
-            data[key] &&
-            typeof data[key] === "string" &&
-            isTableExists(item.ref!)
-          ) {
-            const popItem = getTable(item.ref!).getItemById(data[key]);
-            if (popItem) {
-              data[key] = popItem;
+        validator.populators.push((data, pop: any | undefined, test, afterPop) => {
+
+          if (test(key) && data[key] && typeof data[key] === "string" && isTableExists(item.ref!)) {
+            const name = item.ref
+            const table = name ? getTable(name) : undefined
+            if (table && name) {
+              const popItem = table.getItemById(data[key]);
+              if (popItem) {
+
+                data[key] = afterPop(popItem, name, pop[key] || undefined)
+              }
             }
           }
+          return data
         });
 
         validator.unpopulators.push((data) => {
           if (data[key] && typeof data[key] === "object") {
-            const _id = data[key]._id;
-            if (_id) {
-              data[key] = _id;
+            const id = data[key].id;
+            if (id) {
+              data[key] = id;
             }
           }
         });
@@ -215,7 +241,7 @@ function builder(item: any, key: string): (data: any) => any {
       case "objectid":
         return (data: any) =>
           ObjectId.createFromHexString(
-            data?._id ? data._id : data
+            data?.id ? data.id : data
           ).toString();
 
       default:

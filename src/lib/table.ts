@@ -1,17 +1,13 @@
 import {
   allTables as tables,
   fullDatas as loadedDatas,
-  Persistable,
   ITable,
 } from "./data";
 
 /**
  * Type générique d'un item stocké
  */
-export interface BaseItem extends Persistable {
-  _id?: string;
-  [key: string]: any;
-}
+export type BaseItem = Record<string, number|string|boolean|bigint|{id:string}> & { id: string; }
 
 /**
  * Schéma minimal attendu
@@ -29,7 +25,7 @@ export function isTableExists(name: string): boolean {
   return tables[name] != null;
 }
 
-export function createTable<T extends BaseItem>(
+export function createTableInDatabase<T extends BaseItem>(
   name: string,
   schema: TableSchema<T>
 ): Table<T> {
@@ -89,7 +85,7 @@ export class Table<T extends BaseItem> {
   }
 
   isExists(id: string): boolean {
-    return this.datas.some((i) => i._id == id);
+    return this.datas.some((i) => i.id == id);
   }
 
   private buildFiltre(query: Partial<T>) {
@@ -99,7 +95,7 @@ export class Table<T extends BaseItem> {
 
         return (
           item[k] === query[k] ||
-          ((item[k] as any)?._id === query[k])
+          ((item[k] as any)?.id === query[k])
         );
       });
     };
@@ -138,7 +134,7 @@ export class Table<T extends BaseItem> {
   }
 
   getIndexById(id: string): number {
-    const index = this.datas.findIndex((v) => v._id === id);
+    const index = this.datas.findIndex((v) => v.id === id);
 
     if (index < 0) {
       throw new Error(
@@ -150,11 +146,11 @@ export class Table<T extends BaseItem> {
   }
 
   getItemById(id: string): T | undefined {
-    return this.datas.find((v) => v._id === id);
+    return this.datas.find((v) => v.id === id);
   }
 
   hasDuplicates(key: keyof T, data: T): boolean {
-    return this.datas.some((item) => item[key] === data[key] && item._id!==data._id);
+    return this.datas.some((item) => item[key] === data[key] && item.id !== data.id);
   }
 
   toObject(): T[] {

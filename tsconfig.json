@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "esnext",
     "module": "CommonJS",
     "declaration": true,
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true
   },
-  "include": ["lib"],
+  "include": ["src"],
   "exclude": []
 
 }

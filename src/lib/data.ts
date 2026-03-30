@@ -1,11 +1,6 @@
 import * as fs from "fs";
 
-/**
- * Interface minimale pour les objets stockés
- */
-export interface Persistable {
-  save?: () => Promise<void>;
-}
+
 
 /**
  * Interface pour les tables
@@ -22,7 +17,7 @@ export const allTables: Record<string, ITable> = {};
 /**
  * Données brutes chargées depuis le disque
  */
-export const fullDatas: Record<string, Persistable[]> = {};
+export const fullDatas: Record<string, any[]> = {};
 
 /**
  * Sérialisation complète de la DB
@@ -59,15 +54,9 @@ export function connect(uri: string, startFromScratch = false): void {
       if (!fs.existsSync(uri)) return;
 
       const data = fs.readFileSync(uri, { encoding: "utf8" });
-      const real: Record<string, Persistable[]> = JSON.parse(data);
+      const real: Record<string, {id:string}[]> = JSON.parse(data);
 
       Object.keys(real).forEach((key) => {
-        real[key].forEach((item) => {
-          item.save = async () => {
-            await saveDb();
-          };
-        });
-
         fullDatas[key] = real[key];
       });
     } catch (err) {
