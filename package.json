@@ -9,13 +9,23 @@
   "author": "Claude Bouchard",
   "license": "ISC",
   "description": "A local database based on MongoDb interface, saved locally in a .json file.",
-  "keywords": ["local", "database","db","nosql","storage","fake","simulation"],
+  "keywords": [
+    "local",
+    "database",
+    "db",
+    "nosql",
+    "storage",
+    "fake",
+    "simulation"
+  ],
   "dependencies": {
     "bson": "^6.10.3"
   },
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dualB/local-nosql-db.git"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
   }
 }
