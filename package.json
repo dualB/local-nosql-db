@@ -1,31 +1,55 @@
 {
   "name": "local-nosql-db",
-  "version": "0.7.0",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Claude Bouchard",
-  "license": "ISC",
-  "description": "A local database based on MongoDb interface, saved locally in a .json file.",
+  "version": "0.7.1",
+  "description": "A lightweight local NoSQL database inspired by MongoDB, persisted in JSON files.",
   "keywords": [
     "local",
     "database",
-    "db",
     "nosql",
+    "json",
     "storage",
-    "fake",
-    "simulation"
+    "mongodb-like"
   ],
-  "dependencies": {
-    "bson": "^6.10.3"
+  "author": "Claude Bouchard",
+  "license": "ISC",
+
+  "type": "module",
+
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
   },
+
+  "files": [
+    "dist"
+  ],
+
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dualB/local-nosql-db.git"
   },
+
+  "engines": {
+    "node": ">=18"
+  },
+
+  "dependencies": {
+    "bson": "^6.10.3"
+  },
+
   "devDependencies": {
-    "typescript": "^6.0.2"
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
   }
 }
