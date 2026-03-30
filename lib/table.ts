@@ -2,7 +2,7 @@ import {
   allTables as tables,
   fullDatas as loadedDatas,
   Persistable,
-  Table as ITable,
+  ITable,
 } from "./data";
 
 /**
@@ -115,9 +115,7 @@ export class Table<T extends BaseItem> {
     }
   }
 
-  /**
-   * FIX IMPORTANT ici
-   */
+
   findIndexesByFilter(
     query: Partial<T> = {},
     onlyOne = false
@@ -156,7 +154,7 @@ export class Table<T extends BaseItem> {
   }
 
   hasDuplicates(key: keyof T, data: T): boolean {
-    return this.datas.some((item) => item[key] === data[key]);
+    return this.datas.some((item) => item[key] === data[key] && item._id!==data._id);
   }
 
   toObject(): T[] {

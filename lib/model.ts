@@ -61,13 +61,13 @@ export function model<T extends ModelInstance>(
         throw new Error(errors.join(" "));
       }
 
-      schema.buildItem(data, this as T);
-      schema.decorateItem(this as T);
+      schema.buildItem(data, this as unknown as T);
+      schema.decorateItem(this as unknown as T);
     }
 
     async save(): Promise<void> {
       if (!table.isExists(this._id)) {
-        table.addItem(this as T);
+        table.addItem(this as unknown as T);
       }
 
       await saveDb();
@@ -83,7 +83,6 @@ export function model<T extends ModelInstance>(
       const items = table.findByFilter(query) as T[];
 
       items.forEach((item) => schema.decorateItem(item));
-
       return items;
     }
 

@@ -1,6 +1,6 @@
 {
   "name": "local-nosql-db",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "A lightweight local NoSQL database inspired by MongoDB, persisted in JSON files.",
   "keywords": [
     "local",

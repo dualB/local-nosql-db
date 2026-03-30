@@ -8,16 +8,16 @@ export interface Persistable {
 }
 
 /**
- * Interface pour les tables (tu peux raffiner selon ton modèle réel)
+ * Interface pour les tables
  */
-export interface Table<T = any> {
+export interface ITable<T = any> {
   toObject(): T[];
 }
 
 /**
  * Dictionnaire de tables
  */
-export const allTables: Record<string, Table> = {};
+export const allTables: Record<string, ITable> = {};
 
 /**
  * Données brutes chargées depuis le disque
