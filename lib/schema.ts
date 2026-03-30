@@ -58,7 +58,7 @@ export class Schema<T extends AnyObject = AnyObject> {
     return this.validator.getErrors(data, table);
   }
 
-  buildItem(data: Partial<T>, target: T&{_id?:string}): void {
+  buildItem(data: Partial<T>, target: any): void {
     target._id = new ObjectId().toString() as any;
 
     const validator = this.validator;
