@@ -9,16 +9,45 @@ export type AnyObject = BaseItem
 /**
  * Définition d’un champ de schéma
  */
+
+type Constructor<T = any> = new (value: any) => T;
+
+type BaseField = {
+  required?: boolean;
+  unique?: boolean;
+  
+};
+
+type RefField = BaseField & {
+  type: 'id' | 'objectid';
+  ref: string;
+  default?: string | (() => string);
+};
+
+type StringRefField = BaseField & {
+  type:  'string' | Constructor<string>;
+  default?: string | (() => string);
+};
+type NumberRefField = BaseField & {
+  type:  'number' | Constructor<number>;
+  default?: number | (() => number);
+};
+type BooleanRefField = BaseField & {
+  type:  'boolean' | Constructor<boolean>;
+  default?: boolean | (() => boolean);
+};
+/*type DateRefField = BaseField<Date> & {
+  type:  'date' | Constructor<Date>;
+};*/
+
 export type FieldDefinition =
   | string
-  | (new (value: any) => any)
-  | {
-    type: 'number' | 'string' | 'boolean' | 'id' | 'objectid' | 'date' | (new (value: any) => any);
-    required?: boolean;
-    unique?: boolean;
-    default?: any | (() => any);
-    ref?: string;
-  };
+  | Constructor
+  | RefField
+  | StringRefField
+  | NumberRefField
+  | BooleanRefField;
+  
 
 /**
  * Structure complète du schéma
@@ -168,12 +197,12 @@ function buildValidator<T extends AnyObject>(structure: SchemaDefinition<T>): Va
             data[key] =
               typeof item.default === "function"
                 ? item.default()
-                : item.default;
+                : item.default as any;
           }
         });
       }
 
-      if (item.ref) {
+      if ((item.type=='id' || item.type=='objectid') && item.ref) {
         validator.populators.push((data, pop: any | undefined, test, afterPop) => {
 
           if (test(key) && data[key] && typeof data[key] === "string" && isTableExists(item.ref!)) {

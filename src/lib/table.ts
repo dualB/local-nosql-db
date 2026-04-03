@@ -1,7 +1,7 @@
 import {
   allTables as tables,
-  fullDatas as loadedDatas,
   ITable,
+  fullDatasPromise,
 } from "./data";
 
 /**
@@ -25,15 +25,26 @@ export function isTableExists(name: string): boolean {
   return tables[name] != null;
 }
 
-export function createTableInDatabase<T extends BaseItem>(
+export async function createTableInDatabase<T extends BaseItem>(
   name: string,
   schema: TableSchema<T>
-): Table<T> {
+): Promise<Table<T>> {
+  const datas = await fullDatasPromise
+    
   if (tables[name]) {
     throw new Error(`La table ${name} a déjà été créée`);
   }
 
-  const table = new Table<T>(name, schema);
+
+  let array:any[] =  []
+  if(datas[name]!=undefined){
+    array = datas[name]
+  }
+  else{
+    datas[name]= array
+  }
+
+  const table = new Table<T>(name, schema,array);
   tables[name] = table as unknown as ITable;
 
   return table;
@@ -53,12 +64,11 @@ export function getTable<T extends BaseItem>(name: string): Table<T> {
 export class Table<T extends BaseItem> {
   public name: string;
   public schema: TableSchema<T>;
-  public datas: T[];
 
-  constructor(name: string, schema: TableSchema<T>) {
+
+  constructor(name: string, schema: TableSchema<T>,public datas:T[]) {
     this.name = name;
     this.schema = schema;
-    this.datas = (loadedDatas[name] as T[]) ?? [];
   }
 
   addItem(item: T): void {

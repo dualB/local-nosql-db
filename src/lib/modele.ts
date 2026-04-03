@@ -32,7 +32,7 @@ export function createTable<T extends AnyObject>(
   if (!schema) throw new Error("Vous devez fournir les champs de la table.");
 
 
-  const table: Table<T> = createTableInDatabase<T>(name, schema);
+  const tableP: Promise<Table<T>> = createTableInDatabase<T>(name, schema);
 
   function applyChanges(item: T, data: Partial<T>): T {
     const candidate = { ...item };
@@ -53,7 +53,7 @@ export function createTable<T extends AnyObject>(
 
 
     async create(data: Partial<T>): Promise<T> {
-
+      const table = await tableP
       const errors = schema.getErrors(data, table);
 
       if (errors.length > 0) {
@@ -65,7 +65,7 @@ export function createTable<T extends AnyObject>(
       return item;
     }
     async createMany(datas: Partial<T>[]): Promise<T[]> {
-
+      const table = await tableP
       const items = datas.map(data => {
         const errors = schema.getErrors(data, table);
 
@@ -82,6 +82,7 @@ export function createTable<T extends AnyObject>(
     }
 
     async findMany(query: Partial<T> = {}, options: QueryOptions = {}): Promise<T[]> {
+      const table = await tableP
       const items = table.findByFilter(query) as T[];
       const populator = options?.populate
       if (populator != undefined) {
@@ -92,6 +93,7 @@ export function createTable<T extends AnyObject>(
     }
 
     async findOne(query: Partial<T>, options: QueryOptions = {}): Promise<T | undefined> {
+      const table = await tableP
       const item = table.findByFilter(query, true) as T | undefined;
       const populator = options?.populate
       if (populator != undefined && item) {
@@ -101,6 +103,7 @@ export function createTable<T extends AnyObject>(
     }
 
     async findOneById(id: string, options: QueryOptions = {}): Promise<T | undefined> {
+      const table = await tableP
       const item = table.getItemById(id) as T | undefined;
       const populator = options?.populate
       if (populator != undefined && item) {
@@ -110,6 +113,7 @@ export function createTable<T extends AnyObject>(
     }
 
     async updateOneById(id: string, data: Partial<T>): Promise<void> {
+      const table = await tableP
       const index = table.getIndexById(id);
       const item = table.getItemByIndex(index) as T;
 
@@ -130,6 +134,7 @@ export function createTable<T extends AnyObject>(
     }
 
     async deleteMany(query: Partial<T>): Promise<void> {
+      const table = await tableP
       const indexes = table.findIndexesByFilter(query) as number[];
 
       table.removeIndexes(indexes);
@@ -138,6 +143,7 @@ export function createTable<T extends AnyObject>(
     }
 
     async deleteOne(item: T | string): Promise<void> {
+      const table = await tableP
       const id = typeof item === "string" ? item : item.id;
 
       const index = table.getIndexById(id);
@@ -148,6 +154,7 @@ export function createTable<T extends AnyObject>(
     }
 
     async deleteOneById(id: string): Promise<void> {
+      const table = await tableP
       const index = table.getIndexById(id);
 
       table.removeIndex(index);

@@ -1,7 +1,5 @@
 import * as fs from "fs";
-
-
-
+import * as path from 'path'
 /**
  * Interface pour les tables
  */
@@ -13,11 +11,20 @@ export interface ITable<T = any> {
  * Dictionnaire de tables
  */
 export const allTables: Record<string, ITable> = {};
+//const allTablesResolver = Promise.withResolvers<Record<string, ITable>>()
+
+//export const allTablesPromise = allTablesResolver.promise
 
 /**
  * Données brutes chargées depuis le disque
  */
-export const fullDatas: Record<string, any[]> = {};
+//export const fullDatas: Record<string, any[]> = {};
+const fullDatasResolver = Promise.withResolvers<Record<string, any[]>>()
+export const fullDatasPromise = fullDatasResolver.promise
+
+const uriResolver = Promise.withResolvers<string>()
+
+
 
 /**
  * Sérialisation complète de la DB
@@ -32,49 +39,69 @@ function formatForFile(): string {
   return JSON.stringify(dbContent, null, 2);
 }
 
-/**
- * Fonctions redéfinies dynamiquement après connect()
- */
-export let saveDb: () => Promise<void> = async () => {
-  console.warn(
-    "Aucune sauvegarde effectuée. La base de donnée ne sera qu'en mémoire."
-  );
-};
+function once<T extends (...args: any[]) => any>(fn: T, message: string): T {
+  let called = false
 
-let loadDb: () => void = () => {
-  console.warn("La base de donnée ne sera qu'en mémoire.");
-};
+  return function (this: any, ...args: any[]) {
+    if (called) {
+      console.warn('LOCAL-NOSQL-DB :',message)
+      return
+    }
+    called = true
+    return fn.apply(this, args)
+  } as T
+}
+
+
 
 /**
  * Connexion à une DB fichier
  */
-export function connect(uri: string, startFromScratch = false): void {
-  loadDb = () => {
-    try {
-      if (!fs.existsSync(uri)) return;
+function realConnect(uri: string, options:{repartirANeuf?: boolean,log?:boolean}={repartirANeuf:false,log:true}): void {
+  const logger = options?.log? console.log :()=>{}
+  uri = path.resolve(uri)
+  logger(`LOCAL-NOSQL-DB : Tentative de chargement du fichier "${uri}"...`)
+  uriResolver.resolve(uri)
 
-      const data = fs.readFileSync(uri, { encoding: "utf8" });
-      const real: Record<string, {id:string}[]> = JSON.parse(data);
+  if (!fs.existsSync(uri)) {
+    console.warn(`LOCAL-NOSQL-DB : Le fichier "${uri}" n'existe pas. Aucune donnée ne sera chargée pour l'instant.`)
+    fullDatasResolver.resolve({})
 
-      Object.keys(real).forEach((key) => {
-        fullDatas[key] = real[key];
-      });
-    } catch (err) {
-      console.error(err);
+    return;
+  }
+  else {
+    if (options?.repartirANeuf) {
+      logger(`LOCAL-NOSQL-DB : Le fichier "${uri}" existe mais le contenu sera ignoré pour repartir à neuf.`)
+       fullDatasResolver.resolve({})
     }
-  };
-
-  saveDb = async () => {
-    try {
-      fs.writeFileSync(uri, formatForFile());
-    } catch (err) {
-      console.error(err);
+    else {
+      try {
+        const data = fs.readFileSync(uri, { encoding: "utf8" });
+        const real: Record<string, { id: string }[]> = JSON.parse(data);
+        logger(`LOCAL-NOSQL-DB : Chargement du fichier "${uri}" réussi.`)
+        fullDatasResolver.resolve(real)
+      }
+      catch (e) {
+        console.warn(`LOCAL-NOSQL-DB : Échec du chargement du fichier "${uri}". Aucune donnée ne sera chargée pour l'instant.`)
+        fullDatasResolver.resolve({})
+      }
     }
-  };
+  }
 
-  if (!startFromScratch) {
-    loadDb();
+}
+
+export async function saveDb(): Promise<boolean> {
+
+  const uri = await uriResolver.promise
+
+  try {
+    fs.writeFileSync(uri, formatForFile());
+    return true
+  } catch (err) {
+    console.error(err);
+    return false
   }
 }
 
-export default { connect };
+export const connect = once(realConnect,`La fonction "connect" ne peut être appelée plusieurs fois. Cet appel est ignoré.`)
+
