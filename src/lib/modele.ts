@@ -1,6 +1,6 @@
 import { saveDb } from "./data";
 import { createTableInDatabase, Table } from "./table";
-import { AnyObject, buildTestPopulator, PopulateOption, Schema } from "./schema";
+import { AnyObject, buildTestPopulator, PopulateOption, Schema, SchemaDefinition } from "./schema";
 
 
 
@@ -51,6 +51,7 @@ export function createTable<T extends AnyObject>(
 
     }
 
+    get schema():SchemaDefinition<T>{return JSON.parse(JSON.stringify(schema.data))}
 
     async create(data: Partial<T>): Promise<T> {
       const table = await tableP
