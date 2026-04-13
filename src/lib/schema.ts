@@ -211,8 +211,8 @@ function buildValidator<T extends AnyObject>(structure: SchemaDefinition<T>): Va
             if (table && name) {
               const popItem = table.getItemById(data[key]);
               if (popItem) {
-
-                data[key] = afterPop(popItem, name, pop[key] || undefined)
+              
+                data[key] = afterPop(popItem, name, pop==true?true: pop[key] || undefined)
               }
             }
           }
