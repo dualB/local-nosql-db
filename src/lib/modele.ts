@@ -8,6 +8,7 @@ import { AnyObject, buildTestPopulator, PopulateOption, Schema, SchemaDefinition
  * Type du constructeur retourné
  */
 export type TableModel<T extends AnyObject> = {
+  schema:SchemaDefinition<T>
   create(data: Partial<T>): Promise<T>;
   createMany(datas: Partial<T>[]): Promise<T[]>;
   findMany(query?: Partial<T>, options?: QueryOptions): Promise<T[]>;
